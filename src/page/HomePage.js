@@ -2,8 +2,9 @@ import DocumentDetail from '../components/template/DocumentDetail.js';
 import NotionSideBar from '../components/template/NotionSideBar.js';
 import { request } from '../services/api.js';
 import { initRouter } from '../utils/router.js';
-import styleInJS from '../style/tagStyles.js';
-import { optimisticUpdate } from '../utils/saveDocumentTitle.js';
+import { addSaveDocumentTitleEvent } from '../utils/saveDocumentTitle.js';
+import { findDocumentDataById } from '../utils/findDocumentsPathData.js';
+import createDOM from '../utils/createDOM.js';
 
 /*
  * HomePage
@@ -12,42 +13,19 @@ import { optimisticUpdate } from '../utils/saveDocumentTitle.js';
  * */
 
 export default function HomePage({ $target }) {
-  const $homePage = document.createElement('div');
-  styleInJS({ $target: $homePage, styleTagName: 'HomePage' });
-  $target.appendChild($homePage);
+  const $homePage = createDOM({ $target, tagName: 'div', style: 'HomePage' });
 
   this.state = [];
+  const initDocumentData = { id: null, title: '첫 화면', content: '내용을 채워주세요', documentPath: [] };
+  let tempDocumentData;
 
   const notionSideBar = new NotionSideBar({ $target: $homePage, initialState: [] });
   const documentDetail = new DocumentDetail({
     $target: $homePage,
-    documentState: { id: null, title: '첫 화면', content: '내용을 채워주세요', documentPath: [] },
+    documentState: initDocumentData,
   });
 
-  const findDocumentDataById = id => {
-    const documentPath = [];
-
-    const findDocument = (documents, id) => {
-      for (const document of documents) {
-        if (document.id === id) {
-          documentPath.push({ title: document.title, id: document.id });
-          return true;
-        }
-        if (document.documents.length > 0) {
-          documentPath.push({ title: document.title, id: document.id });
-          if (findDocument(document.documents, id)) return true;
-          documentPath.pop();
-        }
-      }
-    };
-    findDocument(this.state, id);
-
-    return documentPath;
-  };
-
-  let tempDocumentData;
-
-  this.route = async () => {
+  this.handleRoute = async () => {
     const { pathname } = window.location;
 
     const newDocuments = await request(`/documents`);
@@ -56,11 +34,11 @@ export default function HomePage({ $target }) {
     if (pathname === '/') {
       // home 보여주기
       notionSideBar.setState(this.state);
-      documentDetail.setState({ id: null, title: '첫 화면', content: '내용을 채워주세요', documentPath: [] });
+      documentDetail.setState(initDocumentData);
     } else if (pathname.indexOf('/documents/') === 0) {
       const [, , postId] = pathname.split('/');
       const documentContent = request(`/documents/${postId}`);
-      const documentPathData = findDocumentDataById(Number(postId));
+      const documentPathData = findDocumentDataById(this.state, Number(postId));
 
       // sidebar 업데이트
       notionSideBar.setState(this.state);
@@ -79,17 +57,19 @@ export default function HomePage({ $target }) {
     }
   };
 
-  this.route();
-
-  this.optimisticTitle = () => {
+  this.optimisticTitleUpdate = () => {
     notionSideBar.setState(this.state);
     documentDetail.setState(tempDocumentData);
   };
-  optimisticUpdate(this.optimisticTitle);
 
-  initRouter(this.route);
+  this.init = () => {
+    this.handleRoute();
+    addSaveDocumentTitleEvent(this.optimisticTitleUpdate);
+    initRouter(this.handleRoute);
+    window.addEventListener('popstate', e => {
+      this.handleRoute();
+    });
+  };
 
-  window.addEventListener('popstate', e => {
-    this.route();
-  });
+  this.init();
 }

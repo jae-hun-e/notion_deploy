@@ -3,16 +3,20 @@
  * - DocumentLinkButton / DocumentLinkButton / DocumentLinkButton ...
  * */
 
-import DocumentLinkButton from '../DocumentLinkButton.js';
-import { push } from '../../../utils/router.js';
-import styleInJS from '../../../style/tagStyles.js';
-import { getItem } from '../../../utils/storage.js';
+import DocumentLinkButton from '../molecules/DocumentLinkButton.js';
+import { push } from '../../utils/router.js';
+import { getItem } from '../../utils/storage.js';
+import createDOM from '../../utils/createDOM.js';
+import { checkCurrentDocument } from '../../utils/checkCurrentDocument.js';
 
 export default function DocumentHeader({ $target, documentPath }) {
-  const $documentHeader = document.createElement('div');
-  styleInJS({ $target: $documentHeader, styleTagName: 'DocumentHeader' });
+  const $documentHeader = createDOM({ $target, style: 'DocumentHeader' });
 
-  $target.appendChild($documentHeader);
+  this.state = documentPath;
+  this.setState = nextState => {
+    this.state = nextState;
+    this.render();
+  };
 
   $documentHeader.addEventListener('click', e => {
     const { type, id } = e.target.dataset;
@@ -21,12 +25,6 @@ export default function DocumentHeader({ $target, documentPath }) {
       else push(`/documents/${id}`);
     }
   });
-
-  this.state = documentPath;
-  this.setState = nextState => {
-    this.state = nextState;
-    this.render();
-  };
 
   this.render = () => {
     $documentHeader.innerHTML = '';
@@ -37,12 +35,11 @@ export default function DocumentHeader({ $target, documentPath }) {
         $target: $documentHeader,
         title: state.title,
         documentId: state.id,
+        checkCurrentDocument: () => checkCurrentDocument($documentHeader, state.id),
       });
 
       if (idx !== this.state.length - 1) {
-        const split = document.createElement('span');
-        split.textContent = ' / ';
-        $documentHeader.appendChild(split);
+        createDOM({ $target: $documentHeader, tagName: 'span', content: ' / ' });
       } else {
         const saveTitle = getItem(`SAVE_DOCUMENT_TITLE_KEY-${state.id}`);
         saveTitle && documentLinkButton.setState(saveTitle);

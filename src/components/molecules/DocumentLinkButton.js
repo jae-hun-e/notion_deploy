@@ -2,32 +2,28 @@
  * DocumentLinkButton
  * - LinkButton : 해당 문서로 이동
  * */
-import styleInJS from '../../style/tagStyles.js';
 
-export default function DocumentLinkButton({ $target, title, documentId }) {
-  const $title = document.createElement('span');
-  styleInJS({ $target: $title, styleTagName: 'DocumentLinkButton' });
-  $title.setAttribute('data-id', documentId);
-  $title.setAttribute('data-type', 'document');
-  $target.appendChild($title);
+import createDOM from '../../utils/createDOM.js';
 
-  this.state = title;
+export default function DocumentLinkButton({ $target, title, documentId, checkCurrentDocument }) {
+  const $title = createDOM({
+    $target,
+    tagName: 'span',
+    content: title,
+    style: 'DocumentLinkButton',
+    setAttribute: [
+      ['data-id', documentId],
+      ['data-type', 'document'],
+    ],
+  });
 
   this.setState = nextState => {
-    this.state = nextState;
-    this.render();
+    $title.textContent = nextState;
   };
 
-  this.render = () => {
-    $title.textContent = this.state;
-    const { pathname } = window.location;
-    if (pathname.indexOf('/documents/') === 0) {
-      const [, , postId] = pathname.split('/');
-      if (Number(postId) === documentId) {
-        $title.style.color = 'blue';
-      }
-    }
+  this.init = () => {
+    checkCurrentDocument();
   };
 
-  this.render();
+  this.init();
 }

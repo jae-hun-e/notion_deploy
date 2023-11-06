@@ -8,13 +8,12 @@
  * - NewDocumentButton
  * */
 import DocumentObject from './DocumentObject.js';
-import { getItem } from '../../utils/storage.js';
-import styleInJS from '../../style/tagStyles.js';
+import { getItem, setItem } from '../../utils/storage.js';
+import { push } from '../../utils/router.js';
+import createDOM from '../../utils/createDOM.js';
 
 export default function DocumentsList({ $target, initialState }) {
-  const $documentsList = document.createElement('ul');
-  styleInJS({ $target: $documentsList, styleTagName: 'DocumentsList' });
-  $target.appendChild($documentsList);
+  const $documentsList = createDOM({ $target, tagName: 'ul', style: 'DocumentsList' });
 
   this.state = initialState;
 
@@ -23,12 +22,36 @@ export default function DocumentsList({ $target, initialState }) {
     this.render();
   };
 
+  $documentsList.addEventListener('click', e => {
+    const $documentsContainer = e.target.closest('div[data-container]');
+    console.log(e.target);
+    if (!$documentsContainer) return;
+
+    const { type, id } = e.target.dataset;
+
+    if (type === 'document') {
+      e.preventDefault();
+      id && push(`/documents/${id}`);
+    } else {
+      const details = e.target.closest('details');
+      const { id } = details.querySelector('summary span').dataset;
+      if (details.open) {
+        const nextOpenIds = getItem('openDocumentIds').filter(openId => openId !== id);
+        details.setAttribute('open', 'false');
+        setItem('openDocumentIds', nextOpenIds);
+      } else {
+        const currentOpenIds = getItem('openDocumentIds');
+        const nextOpenIds = currentOpenIds ? [...currentOpenIds, id] : [id];
+        setItem('openDocumentIds', nextOpenIds);
+      }
+    }
+  });
+
   this.render = () => {
     $documentsList.innerHTML = '';
 
     this.state.forEach(state => {
-      const $details = document.createElement('details');
-
+      const $details = createDOM({ $target: $documentsList, tagName: 'details' });
       const openIds = getItem('openDocumentIds')?.map(Number);
       openIds?.includes(state.id) && $details.setAttribute('open', 'true');
 
@@ -37,14 +60,14 @@ export default function DocumentsList({ $target, initialState }) {
         currentDocumentData: { title: state.title, id: state.id },
       });
 
-      $documentsList.appendChild($details);
       if (state.documents.length) {
         new DocumentsList({ $target: $details, initialState: state.documents });
       } else {
-        const $span = document.createElement('span');
-        $span.setAttribute('data-type', 'document');
-        $span.textContent = '하위 페이지가 없습니다.';
-        $details.appendChild($span);
+        createDOM({
+          $target: $details,
+          tagName: 'span',
+          content: '하위 페이지가 없습니다.',
+        });
       }
     });
   };
