@@ -1,4 +1,4 @@
-배포 링크 : https://app.netlify.com/sites/effulgent-cuchufli-54c548/overview
+배포 링크 : https://effulgent-cuchufli-54c548.netlify.app/
 
 # 📌 5주차 프로젝트[Project1]
 
